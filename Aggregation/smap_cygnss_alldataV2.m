@@ -59,11 +59,36 @@ for i=1:length(files)
     d=(filesplit{1,5});
     filename1=fullfile(directory,'\',filename(i));
 
-    latitude_1=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/latitude');
-
-    longitude_1=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/longitude');
     %%%%%%%%%%%%%%%%%%
-    retrieval_qual_flag_1=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/retrieval_qual_flag');
+
+    quality_flagAM = h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/retrieval_qual_flag');
+    flipped_quality_flagAM = flip(quality_flagAM);
+    quality_flagAM_mask = uint16(zeros(964, 406));
+    for m=1:length(qfs)
+        flag = uint16(qfs(length(qfs) + 1 - m) * 2^(m-1));
+        tmp_qf = uint16(zeros(IN_COLS, IN_ROWS));
+        tmp_qf(bitand(flipped_quality_flagAM, flag) > 0) = 1;
+        quality_flagAM_mask = bitor(quality_flagAM_mask, tmp_qf);
+    end
+    
+    quality_flagPM = h5read(filename1,'/Soil_Moisture_Retrieval_Data_PM/retrieval_qual_flag_dca_pm');
+    flipped_quality_flagPM = flip(quality_flagPM);
+    quality_flagPM_mask = uint16(zeros(964, 406));
+    for m=1:length(qfs)
+        flag = uint16(qfs(length(qfs) + 1 - m) * 2^(m-1));
+        tmp_qf = uint16(zeros(IN_COLS, IN_ROWS));
+        tmp_qf(bitand(flipped_quality_flagPM, flag) > 0) = 1;
+        quality_flagPM_mask = bitor(quality_flagPM_mask, tmp_qf);
+    end
+
+    latitude_1(:,:,1)=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/latitude');
+    latitude_1(:,:,2)=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/latitude_pm');
+
+    longitude_1(:,:,1)=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/longitude');
+    longitude_1(:,:,2)=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/longitude_pm');
+
+
+% % % %     retrieval_qual_flag_1=h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/retrieval_qual_flag');
 %%%%%%%%%%%%%%%%%% 
 % %     retrieval_qual_flag_1(:,:,1) = h5read(filename1,'/Soil_Moisture_Retrieval_Data_AM/retrieval_qual_flag');
 % %     retrieval_qual_flag_c2(:,:,1)=retrieval_qual_flag_1(:,:,1)';
