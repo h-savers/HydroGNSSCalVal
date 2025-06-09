@@ -128,7 +128,7 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
                 NF=cat(1,NF, nf(:));
                 LF=cat(1,LF,lf(:));
                 BRCS=cat(3, BRCS, brcs);                                      
-                % RXRANGE=cat(1,RXRANGE,rxrange);
+                % RXRANGE=cat(1,RXRANGE,rxrange); #TODO: these variables are extracted in extract_CyGNSS function, but then they are not passed to the function output. Ask Hamed why
                 % TXRANGE=cat(1,TXRANGE,txrange);
                 % NST=cat(1,NST,nst_full);
             else:
