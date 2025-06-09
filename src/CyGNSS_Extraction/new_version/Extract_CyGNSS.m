@@ -58,35 +58,35 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
     %%%%%%%%%%%%%%%%%%%%% STARTING THE MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tic
     % % figure;
-     for ii=1:length(datelist)     % loop on all the days 
-         disp(['% now processing day ' num2str(ii) ' out of ' num2str(length(datelist))])
-         datechar=datestr(datelist(ii),'yyyymmdd');
-         Year=datechar(1:4);
-         d=datetime(datechar,'InputFormat','yyyyMMdd');
-         doy=day(d,'dayofyear');
+    for ii=1:length(datelist)     % loop on all the days 
+        disp(['% now processing day ' num2str(ii) ' out of ' num2str(length(datelist))])
+        datechar=datestr(datelist(ii),'yyyymmdd');
+        Year=datechar(1:4);
+        d=datetime(datechar,'InputFormat','yyyyMMdd');
+        doy=day(d,'dayofyear');
     %%%%%%%%%%%%%%%%%%%%%% CyGNSS data extraction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         chkCyGNSSfile=dir([CyGinpath 'cyg0*.ddmi.s' datechar '*.nc']);   
-         if  ~isempty(chkCyGNSSfile)
-             disp('% Extracting CyGNSS data ...')
-             [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, ...
-                 REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF, BRCS]= ...
-                 extract_CyGNSS(nsat,datechar,doy,CyGinpath,logpath,lambda,Doppler_bins,savespace,delay_vector,Power_threshold);            
-         %%%%%%%%%%%%%%%%%%%%%%%%%%%% SAVING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             disp('% saving CyGNSS data')
-             save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
-                 'PRN', 'SPLAT', 'SPLON', 'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
-                 'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', 'TE_WIDTH', 'DDM_NBRCS','PA','QC', 'NF','LF', '-v7.3')
-         
-         %%%%%%%%%%%%%%%%%%%%% Displaying Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        chkCyGNSSfile=dir([CyGinpath 'cyg0*.ddmi.s' datechar '*.nc']);   
+        if  ~isempty(chkCyGNSSfile)
+            disp('% Extracting CyGNSS data ...')
+            [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, ...
+                REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF, BRCS]= ...
+                extract_CyGNSS(nsat,datechar,doy,CyGinpath,logpath,lambda,Doppler_bins,savespace,delay_vector,Power_threshold);            
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%% SAVING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            disp('% saving CyGNSS data')
+            save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
+                'PRN', 'SPLAT', 'SPLON', 'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
+                'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', 'TE_WIDTH', 'DDM_NBRCS','PA','QC', 'NF','LF', '-v7.3')
+        
+        %%%%%%%%%%%%%%%%%%%%% Displaying Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % %          scattermap(real(10.*log10(REFLECTIVITY_LINEAR)),SPLAT,SPLON,datechar,-40,0)
     % %          print(gcf,[CyGfigurepath datechar '.png'],'-dpng','-r300')   
-         else
-             disp('% CyGNSS data files missing for the selected date, output file not saved .... ')
-         end      
-     end
-     s=duration(0,0,toc);
-     close all
-     disp(['total duration is ' char(duration(0,0,toc))])
+        else
+            disp('% CyGNSS data files missing for the selected date, output file not saved .... ')
+        end      
+    end
+    s=duration(0,0,toc);
+    close all
+    disp(['total duration is ' char(duration(0,0,toc))])
 end
 
 
