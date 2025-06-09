@@ -107,30 +107,30 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
         %%%%%%%%%%%%%%%%%%%%%%%%%%%% SAVING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if aggregate_data:
                 disp('% cat variables from day ' + datechar);
-                DoY=cat(1,DoY,dayofyear(:));
-                SoD=cat(1,SoD,ts(:));
-                SCID=cat(1,SCID,scid(:));
-                PRN=cat(1,PRN, prn(:));
-                SPLAT=cat(1,SPLAT, sp_lat(:));
-                SPLON=cat(1,SPLON, sp_lon(:));
-                THETA=cat(1,THETA, theta(:));
-                EIRP=cat(1,EIRP, eirp(:));
-                SNR=cat(1,SNR, snr(:));
-                PHI_Initial_sp_az_orbit=cat(1,PHI_Initial_sp_az_orbit, phi_Initial_sp_az_orbit(:));
-                REFLECTIVITY_LINEAR=cat(1,REFLECTIVITY_LINEAR,reflectivity_linear(:));
-                KURTOSIS=cat(1,KURTOSIS, Kurtosis(:));
-                KURTOSIS_DOPP_0=cat(1,KURTOSIS_DOPP_0, Kurtosis_dopp0(:)); 
-                TE_WIDTH=cat(1,TE_WIDTH, TE_width(:)); 
-                GAIN=cat(1,GAIN, gain(:));
-                DDM_NBRCS=cat(1,DDM_NBRCS, ddm_nbrcs(:)); 
-                PA=cat(1,PA, reflectivity_linear(:));
-                QC=cat(1,QC, qc(:)); 
-                NF=cat(1,NF, nf(:));
-                LF=cat(1,LF,lf(:));
-                BRCS=cat(3, BRCS, brcs);                                      
-                % RXRANGE=cat(1,RXRANGE,rxrange); #TODO: these variables are extracted in extract_CyGNSS function, but then they are not passed to the function output. Ask Hamed why
-                % TXRANGE=cat(1,TXRANGE,txrange);
-                % NST=cat(1,NST,nst_full);
+                agg_DoY=cat(1,DoY,dayofyear(:));
+                agg_SoD=cat(1,SoD,ts(:));
+                agg_SCID=cat(1,SCID,scid(:));
+                agg_PRN=cat(1,PRN, prn(:));
+                agg_SPLAT=cat(1,SPLAT, sp_lat(:));
+                agg_SPLON=cat(1,SPLON, sp_lon(:));
+                agg_THETA=cat(1,THETA, theta(:));
+                agg_EIRP=cat(1,EIRP, eirp(:));
+                agg_SNR=cat(1,SNR, snr(:));
+                agg_PHI_Initial_sp_az_orbit=cat(1,PHI_Initial_sp_az_orbit, phi_Initial_sp_az_orbit(:));
+                agg_REFLECTIVITY_LINEAR=cat(1,REFLECTIVITY_LINEAR,reflectivity_linear(:));
+                agg_KURTOSIS=cat(1,KURTOSIS, Kurtosis(:));
+                agg_KURTOSIS_DOPP_0=cat(1,KURTOSIS_DOPP_0, Kurtosis_dopp0(:)); 
+                agg_TE_WIDTH=cat(1,TE_WIDTH, TE_width(:)); 
+                agg_GAIN=cat(1,GAIN, gain(:));
+                agg_DDM_NBRCS=cat(1,DDM_NBRCS, ddm_nbrcs(:)); 
+                agg_PA=cat(1,PA, reflectivity_linear(:));
+                agg_QC=cat(1,QC, qc(:)); 
+                agg_NF=cat(1,NF, nf(:));
+                agg_LF=cat(1,LF,lf(:));
+                agg_BRCS=cat(3, BRCS, brcs);                                      
+                % agg_RXRANGE=cat(1,RXRANGE,rxrange); #TODO: these variables are extracted in extract_CyGNSS function, but then they are not passed to the function output. Ask Hamed why
+                % agg_TXRANGE=cat(1,TXRANGE,txrange);
+                % agg_NST=cat(1,NST,nst_full);
             else:
                 disp('% saving CyGNSS data')
                 save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
@@ -143,6 +143,15 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
         else
             disp('% CyGNSS data files missing for the selected date, output file not saved .... ')
         end      
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%% END OF THE MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if aggregate_data:
+        disp('% Saving aggregated data in a single output file')
+        save([CyGoutpath 'CyGNSS_' daterangechar '_2.mat'], 'agg_SCID', 'agg_SoD', 'agg_DoY', ...
+            'agg_PRN', 'agg_SPLAT', 'agg_SPLON', 'agg_THETA', 'agg_EIRP', 'agg_SNR', ...
+            'agg_PHI_Initial_sp_az_orbit', 'agg_REFLECTIVITY_LINEAR', 'agg_KURTOSIS', ...
+            'agg_KURTOSIS_DOPP_0', 'agg_TE_WIDTH', 'agg_DDM_NBRCS','agg_PA','agg_QC', ...
+            'agg_NF','agg_LF','agg_BRCS','-v7.3')
     end
     s=duration(0,0,toc);
     close all
