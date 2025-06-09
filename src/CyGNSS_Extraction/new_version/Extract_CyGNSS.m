@@ -133,7 +133,7 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
                 % agg_NST=cat(1,NST,nst_full);
             else:
                 disp('% saving CyGNSS data')
-                save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
+                save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...  % #TODO Why there is "_2" in the filename? Ask Hamed
                     'PRN', 'SPLAT', 'SPLON', 'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
                     'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', 'TE_WIDTH', 'DDM_NBRCS','PA','QC', 'NF','LF', '-v7.3')
             end
