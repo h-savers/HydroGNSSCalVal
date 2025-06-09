@@ -17,7 +17,7 @@ initdate='20/06/2019';
 enddate='21/06/2019';
 %%%%%%%%%%%%%%%%% Defining the steps of processing %%%%%%%%%%%%%%%%%%%%%%%%
 savespace='yes';                                                           % to apply the CYGNSS land flag before saving (it significantly reduces the size of output file and speeds up the processing
-
+aggregate_data = True;                                                     % to aggregate data from different days and save it in a single file
 
 for i=171:171 % #TODO What is this loop for? There's a loop over all the days below. 
 
@@ -55,6 +55,39 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
     enddatenum=datenum(enddate,'dd/mm/yyyy');
     datelist=initdatenum:enddatenum;
 
+    %%%%%%%%%%%%%%%%%%%%% INITIALIZING EMPTY VARIABLES FOR AGGREGATED SINGLE OUTPUT FILE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if aggregate_data:
+        daterangechar = [datestr(initdatenum,'yyyymmdd') '-' datestr(enddatenum,'yyyymmdd')]; % date range for aggregated output file
+        disp(['% Processing data from ' daterangechar ' and saving in a single output file'])
+
+        agg_SCID=[];                                % CYGNSS sat ID
+        agg_SoD=[];                                 % second of the day
+        agg_DoY=[];                                 % day of the year
+        agg_PRN=[];                                 % PRN --> Prn code = prn -->trasmettitore (1 10 22 etc..)
+        agg_SPLAT=[];                               % SP lat on ground
+        agg_SPLON=[];                               % SP lon on ground
+        agg_THETA=[];                               % incidence angle
+        agg_PHI_Initial_sp_az_orbit=[];             % azimuth angle in specular point orbit frame
+        agg_GAIN=[];                                % gain of receiver antenna [dBi]
+        agg_EIRP=[];                                % EIRP [W]
+        agg_SNR=[];                                 % SNR of reflected signal - NOTE: calculated from the uncalibrated DDM in counts [dB]
+        agg_PA=[];                                  % peak power
+        agg_NF=[];                                  % noise floor
+        agg_RXRANGE=[];                             % Rx range [m]
+        agg_TXRANGE=[];                             % Tx range [m]
+        agg_NST=[];                                 % overall quality
+        agg_LF=[];                                  % land flag
+        agg_QC=[];                                  % Quality Flag
+        agg_DDM_NBRCS=[];                           % NBRCS
+        agg_KURTOSIS=[];                            % Kurtosis
+        agg_KURTOSIS_DOPP_0=[];                     % Kurtosis zero-doppler
+        agg_TE_WIDTH = [];                          % Trailing Edge (Carreno-Luengo 2020)
+        agg_REFLECTIVITY_LINEAR=[];                 % Reflectivity
+        agg_BRCS=[];                                % added by Hamed to save full ddm
+    else
+        disp('% Processing each day separately and saving individual output files')
+    end
+
     %%%%%%%%%%%%%%%%%%%%% STARTING THE MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tic
     % % figure;
@@ -72,11 +105,38 @@ for i=171:171 % #TODO What is this loop for? There's a loop over all the days be
                 REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF, BRCS]= ...
                 extract_CyGNSS(nsat,datechar,doy,CyGinpath,logpath,lambda,Doppler_bins,savespace,delay_vector,Power_threshold);            
         %%%%%%%%%%%%%%%%%%%%%%%%%%%% SAVING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            disp('% saving CyGNSS data')
-            save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
-                'PRN', 'SPLAT', 'SPLON', 'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
-                'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', 'TE_WIDTH', 'DDM_NBRCS','PA','QC', 'NF','LF', '-v7.3')
-        
+            if aggregate_data:
+                disp('% cat variables from day ' + datechar);
+                DoY=cat(1,DoY,dayofyear(:));
+                SoD=cat(1,SoD,ts(:));
+                SCID=cat(1,SCID,scid(:));
+                PRN=cat(1,PRN, prn(:));
+                SPLAT=cat(1,SPLAT, sp_lat(:));
+                SPLON=cat(1,SPLON, sp_lon(:));
+                THETA=cat(1,THETA, theta(:));
+                EIRP=cat(1,EIRP, eirp(:));
+                SNR=cat(1,SNR, snr(:));
+                PHI_Initial_sp_az_orbit=cat(1,PHI_Initial_sp_az_orbit, phi_Initial_sp_az_orbit(:));
+                REFLECTIVITY_LINEAR=cat(1,REFLECTIVITY_LINEAR,reflectivity_linear(:));
+                KURTOSIS=cat(1,KURTOSIS, Kurtosis(:));
+                KURTOSIS_DOPP_0=cat(1,KURTOSIS_DOPP_0, Kurtosis_dopp0(:)); 
+                TE_WIDTH=cat(1,TE_WIDTH, TE_width(:)); 
+                GAIN=cat(1,GAIN, gain(:));
+                DDM_NBRCS=cat(1,DDM_NBRCS, ddm_nbrcs(:)); 
+                PA=cat(1,PA, reflectivity_linear(:));
+                QC=cat(1,QC, qc(:)); 
+                NF=cat(1,NF, nf(:));
+                LF=cat(1,LF,lf(:));
+                BRCS=cat(3, BRCS, brcs);                                      
+                % RXRANGE=cat(1,RXRANGE,rxrange);
+                % TXRANGE=cat(1,TXRANGE,txrange);
+                % NST=cat(1,NST,nst_full);
+            else:
+                disp('% saving CyGNSS data')
+                save([CyGoutpath datechar '_2.mat'], 'Year', 'DoY', 'SoD', 'SCID', ...
+                    'PRN', 'SPLAT', 'SPLON', 'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
+                    'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', 'TE_WIDTH', 'DDM_NBRCS','PA','QC', 'NF','LF', '-v7.3')
+            end
         %%%%%%%%%%%%%%%%%%%%% Displaying Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % %          scattermap(real(10.*log10(REFLECTIVITY_LINEAR)),SPLAT,SPLON,datechar,-40,0)
     % %          print(gcf,[CyGfigurepath datechar '.png'],'-dpng','-r300')   
