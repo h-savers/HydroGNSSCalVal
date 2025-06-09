@@ -1,6 +1,20 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This function extracts CyGNSS observables by also computing reflectivity
 % and Trailing Edge and outputting them as trackwise files.
+
+% Inputs:
+%   nsat: number of satellites (8 for CyGNSS)
+%   datechar: date in 'dd-mm-yyyy' format
+%   doy: day of the year
+%   inpath: input path for CyGNSS data
+%   logpath: path for logging errors
+%   lambda: wavelength of the signal
+%   Doppler_bins: Doppler bins for processing
+%   savespace: flag to apply the CYGNSS land flag before saving (reduces file size)
+%   delay_vector: vector of delays for processing
+%   Power_threshold: threshold for power to compute Trailing Edge
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, ...
          REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF, BRCS]= ...
