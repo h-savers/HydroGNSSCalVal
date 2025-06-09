@@ -18,7 +18,8 @@ enddate='21/06/2019';
 %%%%%%%%%%%%%%%%% Defining the steps of processing %%%%%%%%%%%%%%%%%%%%%%%%
 savespace='yes';                                                           % to apply the CYGNSS land flag before saving (it significantly reduces the size of output file and speeds up the processing
 
-for i=171:171
+
+for i=171:171 % #TODO What is this loop for? There's a loop over all the days below. 
 
     %%%%%%%%%%%%%%%%%%%%%%%%% DEFINING PATHS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     CyGinpath=['D:\Hamed\CyGNSS\CyGNSS_V3.0\NewApproach_Emanuele\Extract_CYGNSS_Standalone\test201906\' num2str(i) '\'];                              % input CyGNSS .nc data
@@ -53,6 +54,7 @@ for i=171:171
     initdatenum=datenum(initdate,'dd/mm/yyyy');
     enddatenum=datenum(enddate,'dd/mm/yyyy');
     datelist=initdatenum:enddatenum;
+
     %%%%%%%%%%%%%%%%%%%%% STARTING THE MAIN LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tic
     % % figure;
