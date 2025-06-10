@@ -56,7 +56,7 @@ function [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, .
         
             disp('% computing  Trailing Edge') %Kurtosis, Kurtosis zero doppler and
             TE_width=computeTE(pa,delay_vector,Power_threshold);         
-            dayofyear=doy*size(sp_lat);
+            dayofyear=zeros(size(sp_lat)) + doy;  % to have the same size as sp_lat
         % cat variables
             disp('% cat variables ')
             SCID=cat(1,SCID,scid(:));
