@@ -31,7 +31,7 @@ verifydir(logpath)
 %%%%%%%%%%%%%%%%%%% DEFINING GENERAL PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%% Defining the steps of processing %%%%%%%%%%%%%%%%%%%%%%%%
 savespace='yes';                                                            % to apply the CYGNSS land flag before saving (it significantly reduces the size of output file and speeds up the processing
-aggregate_data = true;                                                     % to aggregate data from different days and save it in a single file
+aggregate_data = false;                                                     % to aggregate data from different days and save it in a single file
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% Geographic limits %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 LatMin=-90;
@@ -183,25 +183,3 @@ end
 s=duration(0,0,toc);
 close all
 disp(['total duration is ' char(duration(0,0,toc))])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
