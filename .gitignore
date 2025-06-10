@@ -3,3 +3,4 @@
 resources/
 *.asv
 .DS_Store
+test_data/
