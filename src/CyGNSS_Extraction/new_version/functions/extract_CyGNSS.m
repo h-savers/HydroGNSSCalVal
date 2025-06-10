@@ -56,7 +56,7 @@ function [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, .
         
             disp('% computing  Trailing Edge') %Kurtosis, Kurtosis zero doppler and
             TE_width=computeTE(pa,delay_vector,Power_threshold);         
-          dayofyear=doy*size(sp_lat);
+            dayofyear=doy*size(sp_lat);
         % cat variables
             disp('% cat variables ')
             SCID=cat(1,SCID,scid(:));
@@ -85,10 +85,9 @@ function [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, .
 
             BRCS=cat(3, BRCS, brcs);                                       % added by Hamed to keep full ddm
         else
-          diary([logpath 'log_' datestr(now,'dd-mm-yyyy') '.txt'])
-          disp(['% WARNING: cyg0' num2str(jj) ' satellite missing for the date ' datechar])
-          diary off
+            diary([logpath 'log_' datestr(now,'dd-mm-yyyy') '.txt'])
+            disp(['% WARNING: cyg0' num2str(jj) ' satellite missing for the date ' datechar])
+            diary off
         end
     end
-    
 end   
