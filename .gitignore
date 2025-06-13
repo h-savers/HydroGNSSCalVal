@@ -1,6 +1,10 @@
 # List of untracked files to ignore
+<<<<<<< Updated upstream
 
 resources/
 *.asv
 .DS_Store
 test_data/
+=======
+.DS_Store
+>>>>>>> Stashed changes
