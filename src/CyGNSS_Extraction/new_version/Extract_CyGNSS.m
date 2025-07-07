@@ -13,12 +13,102 @@ addpath('src/CyGNSS_Extraction/new_version/functions/')
 %    parpool
 % end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Adding GUI % start
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% *************  Start GUI 
+%load('C:\Users\syedw\Desktop\CalvalRep\conf\Configuration.mat') ;
+% global model ; 
+% ****** get inputs from GUI
+%prompt={'Taskname: ',...
+%         'initdate: ',...
+%         'enddate: ',...
+%         'savespace: ',...
+%         'mainpath: ', ...
+%         'CyGoutpath: ', ...
+%         'LatMin: ', ...
+%         'LatMax: ', ...
+%         'LonMin: ', ...
+%         'LonMax: '}  ; 
+
+
+%opts.Resize='on';
+%opts.WindowStyle='normal';
+%opts.Interpreter='tex';
+%name='Soil moisture L2 processor by Sapienza-CRAS';
+%numlines=[1 30; 1 30; 1 30; 1 30; 1 30; 1 30 ; 1 30; 1 30; 1 30; 1 30] ; 
+%defaultanswer={Answer{1},Answer{2},...
+%                 Answer{3},Answer{4},Answer{5},Answer{6},Answer{7},...
+%                 Answer{8},Answer{9},Answer{10},...
+%               Answer{11},Answer{12},Answer{13}};
+%Answer=cell(10,1);
+%Answer=inputdlg(prompt,name,numlines,defaultanswer,opts);
+% ************* Start GUI
+conf_file = 'C:\Users\syedw\Desktop\CalvalRep\conf\Configuration.mat';
+
+% Set up prompts and dialog config
+prompt = {'Taskname: ', ...
+          'initdate: ', ...
+          'enddate: ', ...
+          'savespace: ', ...
+          'mainpath: ', ...
+          'CyGoutpath: ', ...
+          'LatMin: ', ...
+          'LatMax: ', ...
+          'LonMin: ', ...
+          'LonMax: '};
+      
+name = 'Soil moisture L2 processor by Sapienza-CRAS';
+numlines = repmat([1 30], 10, 1);
+opts.Resize = 'on';
+opts.WindowStyle = 'normal';
+opts.Interpreter = 'tex';
+
+% Try to load previous inputs if they exist
+defaultanswer = repmat({''}, 1, 10);
+if isfile(conf_file)
+    loaded = load(conf_file, 'Answer');
+    if isfield(loaded, 'Answer') && numel(loaded.Answer) >= 10
+        defaultanswer = loaded.Answer;
+    end
+end
+
+% Launch input dialog
+Answer = inputdlg(prompt, name, numlines, defaultanswer, opts);
+
+% If user clicked OK, save it
+if ~isempty(Answer)
+    save(conf_file, 'Answer', '-append');
+end
+
+project_name= Answer{1};
+initdate= Answer{2};
+enddate= Answer{3};
+savespace= Answer{4};
+mainpath= Answer{5};
+
+init_SM_Day=datetime(str2num(Answer{5}), str2num(Answer{6}), str2num(Answer{7})) ;
+final_SM_Day=datetime(str2num(Answer{8}), str2num(Answer{9}), str2num(Answer{10})) ;
+%SM_Time_resolution=str2num(Answer{11}) ;
+%Frequency=Answer{12} ;
+%Polarization=Answer{13} ;
+% ****** get inputs from GUI
+%
+% ****** Save GUI input into Input Configuration File 
+save('C:\Users\syedw\Desktop\CalvalRep\conf\Configuration.mat', 'Answer', '-append') ;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GUI % ends here
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%% DEFINING GENERAL PATHS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-CyGinpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/V3.2/2021/';                            % Input CyGNSS DoY folders
-CyGoutpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/';                            % Path to save output matfile containing daily trackwise CYGNSS data (all 8 satellites)
-CyGfigurepath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/figures/';                 % Path to save output figures for verification
-logpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/logs';                          % Error log path 
+%CyGinpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/V3.2/2021/';                            % Input CyGNSS DoY folders
+%CyGoutpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/';                            % Path to save output matfile containing daily trackwise CYGNSS data (all 8 satellites)
+%CyGfigurepath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/figures/';                 % Path to save output figures for verification
+%logpath='/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/logs';                          % Error log path 
 
 %%%%%%%%%%%%%%%%%% VERIFYING OUTPUT DIRECTORIES %%%%%%%%%%%%%%%%%%%%%%%%%%%
 verifydir(CyGoutpath)
