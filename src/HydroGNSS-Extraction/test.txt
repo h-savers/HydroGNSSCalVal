@@ -1,98 +1,140 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Extract HydroGNSS observables in 6-hour blocks, aggregate across days
-% Developed by [Your Name], based on CyGNSS legacy extraction code
+%%% HydroGNSS Extraction Script with GUI-based Date Range Input %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clear all
 close all
 
-addpath('src/HydroGNSS_Extraction/functions/')  % Adjust if path differs
+%%% GUI Configuration File
+conf_file = 'C:\Users\syedw\Desktop\CalvalRep\conf\Configuration.mat';
 
-%%%%%%%%%%%%%%% Define Paths %%%%%%%%%%%%%%%%%%%%%%%%%%%
-HydInPath     = '/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/V3.2/2021/';
-HydOutPath    = '/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/';
-HydFigurePath = '/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/figures/';
-LogPath       = '/Users/pgmadonia/PhD/coding/HydroGNSSCalVal/test_data/extracted/logs/';
+%%% GUI Prompt Setup
+prompt = {'Taskname: ', ...
+          'initdate (dd/mm/yyyy): ', ...
+          'enddate (dd/mm/yyyy): ', ...
+          'savespace: ', ...
+          'mainpath: ', ...
+          'CyGoutpath: ', ...
+          'LatMin: ', ...
+          'LatMax: ', ...
+          'LonMin: ', ...
+          'LonMax: '};
+
+name = 'Soil moisture L2 processor by Sapienza-CRAS';
+numlines = repmat([1 30], 10, 1);
+opts.Resize = 'on';
+opts.WindowStyle = 'normal';
+opts.Interpreter = 'tex';
+
+%%% Load previous GUI answers if available
+defaultanswer = repmat({''}, 1, 10);
+if isfile(conf_file)
+    loaded = load(conf_file, 'Answer');
+    if isfield(loaded, 'Answer') && numel(loaded.Answer) >= 10
+        defaultanswer = loaded.Answer;
+    end
+end
+
+%%% Launch GUI Dialog
+Answer = inputdlg(prompt, name, numlines, defaultanswer, opts);
+if isempty(Answer)
+    error('User cancelled GUI input. Exiting.');
+end
+
+save(conf_file, 'Answer', '-append');
+
+%%% Extract GUI Inputs
+project_name = Answer{1};
+initdate     = Answer{2};  % 'dd/mm/yyyy'
+enddate      = Answer{3};
+savespace    = Answer{4};
+mainpath     = Answer{5};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Define Input/Output/Log/Figure Directories %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+HydInPath     = 'C:\Users\syedw\Desktop\sapienza\datasets\PDGS_nas\HydroGNSS-1\DataRelease\L1A_L1B';
+HydOutPath    = 'C:\Users\syedw\Desktop\HydroGNSS-validation\test_data\extracted\';
+HydFigurePath = 'C:\Users\syedw\Desktop\HydroGNSS-validation\test_data\extracted\figures\';
+LogPath       = 'C:\Users\syedw\Desktop\HydroGNSS-validation\test_data\extracted\logs\';
 
 verifydir(HydOutPath);
 verifydir(HydFigurePath);
 verifydir(LogPath);
 
-%%%%%%%%%%%%%% Date Range to Process %%%%%%%%%%%%%%%%%%%
-initdate   = '02/10/2021';
-enddate    = '03/10/2021';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Convert Date Range from GUI %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 initdatenum = datenum(initdate, 'dd/mm/yyyy');
-enddatenum  = datenum(enddate, 'dd/mm/yyyy');
+enddatenum  = datenum(enddate,  'dd/mm/yyyy');
 datelist    = initdatenum:enddatenum;
 
-%%%%%%%%%%%%%% Define 6-Hour Time Blocks %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Define 6-Hour Time Blocks %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 time_blocks = [0 6; 6 12; 12 18; 18 24];
 
-%%%%%%%%%%%%%% Aggregated Output Variables %%%%%%%%%%%%%
-agg_TimeUTC = [];
-agg_Lat     = [];
-agg_Lon     = [];
-agg_SM      = [];
-agg_LST     = [];
-agg_TB      = [];
-agg_QC      = [];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Initialize Aggregation Variables %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%% Main Loop Over Days %%%%%%%%%%%%%%%%%%%%%
+agg_TimeUTC       = [];
+agg_Lat           = [];
+agg_Lon           = [];
+agg_SM            = [];
+agg_LST           = [];
+agg_TB            = [];
+agg_QC            = [];
+agg_DDM           = [];
+agg_Noise         = [];
+agg_SNR           = [];
+agg_IncAngle      = [];
+agg_Coherence     = [];
+agg_PRN           = [];
+agg_ModulationID  = [];
+agg_Reflectivity  = [];
+agg_NBRCS         = [];
+agg_RxPos         = [];
+agg_TxPos         = [];
+agg_RxVel         = [];
+agg_TxVel         = [];
+agg_ProcParams    = [];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Process Loop - Dates and 6-Hour Blocks %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 tic
 for ii = 1:length(datelist)
     datechar = datestr(datelist(ii), 'yyyymmdd');
     Year     = datechar(1:4);
-    d        = datetime(datechar, 'InputFormat', 'yyyyMMdd');
-    doy      = day(d, 'dayofyear');
+    Month    = datechar(5:6);
+    Day      = datechar(7:8);
     
-    disp(['Processing date ' datechar ' (DoY ' num2str(doy) ') ...']);
+    disp(['Processing date: ', datechar]);
 
-    % Input folder for the current day
-    DoYfolder = [HydInPath, num2str(doy), '/'];
-    files = dir([DoYfolder 'hydrognss*.nc']);
-
-    if isempty(files)
-        disp(['No HydroGNSS files found for DoY ', num2str(doy)]);
-        continue
-    end
-
-    % Loop over each 6-hour block
     for b = 1:size(time_blocks, 1)
         start_hour = time_blocks(b,1);
         end_hour   = time_blocks(b,2);
-        disp(['  Block: ', num2str(start_hour), '–', num2str(end_hour), ' UTC']);
+        hour_str   = sprintf('H%02d', start_hour);
 
-        for f = 1:length(files)
-            filename = fullfile(DoYfolder, files(f).name);
-            
-            try
-                [TimeUTC, Lat, Lon, SM, LST, TB, QC] = extract_HydroGNSS(filename, start_hour, end_hour, LogPath);
-                
-                % Concatenate to aggregated variables
-                agg_TimeUTC = [agg_TimeUTC; TimeUTC(:)];
-                agg_Lat     = [agg_Lat; Lat(:)];
-                agg_Lon     = [agg_Lon; Lon(:)];
-                agg_SM      = [agg_SM; SM(:)];
-                agg_LST     = [agg_LST; LST(:)];
-                agg_TB      = [agg_TB; TB(:)];
-                agg_QC      = [agg_QC; QC(:)];
+        % Construct expected file path: .../YYYY-MM/DD/HXX/metadata_L1_merged.nc
+        subfolder = fullfile(HydInPath, [Year '-' Month], Day, hour_str);
+        filename  = fullfile(subfolder, 'metadata_L1_merged.nc');
 
-            catch ME
-                warning(['  Error processing file: ', filename]);
-                warning(['  Message: ', ME.message]);
-                continue
-            end
+        disp(['  Checking block: ', hour_str, ' -> ', filename]);
+
+        if ~isfile(filename)
+            disp('  ⚠️  nc file is not present for this block');
+            continue
         end
-    end
-end
 
-%%%%%%%%%%%%%% Save Aggregated Data %%%%%%%%%%%%%%%%%%%%
-daterangechar = [datestr(initdatenum,'yyyymmdd') '-' datestr(enddatenum,'yyyymmdd')];
-outname = ['aggregated_HydroGNSS_' daterangechar '_6hBlocks.mat'];
-
-save(fullfile(HydOutPath, outname), ...
-    'Year', 'agg_TimeUTC', 'agg_Lat', 'agg_Lon', ...
-    'agg_SM', 'agg_LST', 'agg_TB', 'agg_QC', '-v7.3');
-
-duration_elapsed = duration(0,0,toc);
-disp(['✅ Extraction complete. Total time: ', char(duration_elapsed)]);
+        try
+            % Perform Extraction
+            [TimeUTC, Lat, Lon, SM, LST, TB, QC, DDM, Noise, SNR, IncAngle, ...
+             Coherence, PRN, ModulationID, Reflectivity, NBRCS, ...
+             RxPos, TxPos, RxVel, TxVel, ProcParams] = ...
+             ext
