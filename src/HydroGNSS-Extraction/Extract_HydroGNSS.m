@@ -6,7 +6,7 @@ clear all
 close all
 
 % ===== Define Configuration File Path
-conf_dir = 'C:\Users\syedw\Desktop\testcalval\conf\';
+conf_dir = 'D:\Hamed\HydroGNSS_CalVal\HydroGNSSCalVal\conf\';
 conf_file = fullfile(conf_dir, 'Configuration.mat');
 cfg_file = fullfile(conf_dir, 'Configuration.txt');
 
@@ -64,7 +64,7 @@ end
 initdate = Answer{2};
 enddate  = Answer{3};
 
-HydInPath = 'C:\Users\syedw\Desktop\sapienza\datasets\PDGS_nas\HydroGNSS-1\DataRelease\L1A_L1B';
+HydInPath = 'D:\Hamed\Datasets_processor\TDS-1\Gabrielle_2018_08\HydroGNSS-1\DataRelease\L1A_L1B';
 
 % ===== Date Range
 initdatenum = datenum(initdate, 'dd/mm/yyyy');
