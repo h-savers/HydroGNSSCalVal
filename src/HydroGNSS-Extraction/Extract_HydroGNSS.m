@@ -95,6 +95,11 @@ for ii = 1:length(datelist)
         % Message formatting
         if isfile(filename)
             disp(['✅ Found file for ' datechar ' | Block: ' block_name]);
+            disp('% Extracting HydroGNSS data ...')
+            nsat = 1; % it's hardcoded to 1 because in this stage we only work on HyroGNSS-1
+            [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, ...
+                REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF,BRCS]= ...
+                extract_HydroGNSS(nsat,datechar,doy,subfolder,logpath,lambda,Doppler_bins,savespace,delay_vector,Power_threshold);
         else
             disp(['❌ Missing file for ' datechar ' | Block: ' block_name]);
         end
