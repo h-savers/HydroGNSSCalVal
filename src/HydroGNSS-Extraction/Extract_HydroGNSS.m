@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% HydroGNSS Extraction Script - Test for File Availability Only %%%%%%%%%
+%%% HydroGNSS Extraction Script - Test for File Availability and Extract %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clear all
@@ -58,23 +58,35 @@ if ~isempty(Answer)
         fprintf(fid, '%s %s\n', prompt{i}, Answer{i});
     end
     fclose(fid);
+else
+    disp('❌ Script canceled by user.');
+    return;
 end
 
 % ===== Extract values from GUI
-initdate = Answer{2};
-enddate  = Answer{3};
+initdate    = Answer{2};
+enddate     = Answer{3};
+savespace   = strcmpi(Answer{4}, 'yes');
+mainpath    = Answer{5};
+HydOutPath  = Answer{6};
 
-HydInPath = 'D:\Hamed\Datasets_processor\TDS-1\Gabrielle_2018_08\HydroGNSS-1\DataRelease\L1A_L1B';
+% ===== Static inputs
+HydInPath       = 'D:\Hamed\Datasets_processor\TDS-1\Gabrielle_2018_08\HydroGNSS-1\DataRelease\L1A_L1B';
+lambda          = 0.19;         % L-band wavelength in meters
+Doppler_bins    = 17;           % Doppler bin count (customize as needed)
+delay_vector    = [];           % Optional
+Power_threshold = 0;            % Optional
+logpath         = '';           % Optional
 
 % ===== Date Range
 initdatenum = datenum(initdate, 'dd/mm/yyyy');
 enddatenum  = datenum(enddate, 'dd/mm/yyyy');
 datelist    = initdatenum:enddatenum;
 
-% ===== 6-Hour Time Blocks
+% ===== Define 6-Hour Time Blocks
 time_blocks = [0 6; 6 12; 12 18; 18 24];
 
-% ===== File Check Loop
+% ===== Loop through each date and block
 for ii = 1:length(datelist)
     datechar = datestr(datelist(ii), 'yyyymmdd');
     Year     = datechar(1:4);
@@ -83,27 +95,53 @@ for ii = 1:length(datelist)
 
     disp(['📅 Checking date: ' datechar]);
 
+    % Get DoY
+    datevec_now = datevec(datelist(ii));
+    doy = datenum(datevec_now) - datenum(datevec_now(1),1,0);
+
     for b = 1:size(time_blocks, 1)
         start_hour = time_blocks(b, 1);
-        end_hour   = time_blocks(b, 2);
         block_name = sprintf('H%02d', start_hour);
 
-        % Construct file path
+        % Construct path to metadata
         subfolder = fullfile(HydInPath, [Year '-' Month], Day, block_name);
         filename  = fullfile(subfolder, 'metadata_L1_merged.nc');
 
-        % Message formatting
         if isfile(filename)
             disp(['✅ Found file for ' datechar ' | Block: ' block_name]);
-            disp('% Extracting HydroGNSS data ...')
-            nsat = 1; % it's hardcoded to 1 because in this stage we only work on HyroGNSS-1
-            [DoY,SoD,SCID,PRN,SPLAT,SPLON,THETA,EIRP,SNR,PHI_Initial_sp_az_orbit, ...
-                REFLECTIVITY_LINEAR,KURTOSIS,KURTOSIS_DOPP_0,TE_WIDTH,DDM_NBRCS,PA,QC,NF,LF,BRCS]= ...
-                extract_HydroGNSS(nsat,datechar,doy,subfolder,logpath,lambda,Doppler_bins,savespace,delay_vector,Power_threshold);
+            disp('% Extracting HydroGNSS data ...');
+
+            % Extraction: hardcoded for 1 satellite
+            nsat = 1;
+            SCID = 1;
+
+            try
+                [DoY, SoD, SCID, PRN, SPLAT, SPLON, THETA, EIRP, SNR, ...
+                 PHI_Initial_sp_az_orbit, REFLECTIVITY_LINEAR, ...
+                 KURTOSIS, KURTOSIS_DOPP_0, TE_WIDTH, DDM_NBRCS, ...
+                 PA, QC, NF, LF, BRCS] = ...
+                 extract_HydroGNSS(nsat, datechar, doy, subfolder, ...
+                 logpath, lambda, Doppler_bins, savespace, ...
+                 delay_vector, Power_threshold);
+
+                % Optional: Save extracted variables
+                outFile = fullfile(HydOutPath, ...
+                    sprintf('HydroGNSS_Extract_%s_%s.mat', datechar, block_name));
+                save(outFile, 'DoY', 'SoD', 'SCID', 'PRN', 'SPLAT', 'SPLON', ...
+                    'THETA', 'EIRP', 'SNR', 'PHI_Initial_sp_az_orbit', ...
+                    'REFLECTIVITY_LINEAR', 'KURTOSIS', 'KURTOSIS_DOPP_0', ...
+                    'TE_WIDTH', 'DDM_NBRCS', 'PA', 'QC', 'NF', 'LF', 'BRCS');
+
+                disp('✅ Extraction complete.');
+
+            catch ME
+                warning(['⚠️ Extraction failed for ' datechar ' ' block_name ': ' ME.message]);
+            end
+
         else
             disp(['❌ Missing file for ' datechar ' | Block: ' block_name]);
         end
     end
 end
 
-disp('✔️ File check complete.');
+disp('✔️ File check and extraction complete.');
