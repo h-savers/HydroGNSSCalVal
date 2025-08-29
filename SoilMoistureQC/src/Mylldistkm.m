@@ -57,12 +57,18 @@ lon2all=repmat(latlon2(2,:), size1,1) ;
 deltaLat=lat2all-lat1all;
 deltaLon=lon2all-lon1all;
 
+clear latlon1  latlon2 lon1all  lon2all 
 a=sin((deltaLat)/2).^2 + cos(lat1all).*cos(lat2all).* sin(deltaLon/2).^2;
+clear deltaLat lat1all lat2all deltaLon 
 c=2.*atan2(sqrt(a),sqrt(1-a));
+clear a 
 d1km=radius.*c;    %Haversine distance
-
-x=deltaLon.*cos((lat1all+lat2all)./2);
-y=deltaLat;
-d2km=radius.*sqrt(x.*x + y.*y); %Pythagoran distance
-
+clear c
+%%% remove second method
+d2km=0 ; 
+% x=deltaLon.*cos((lat1all+lat2all)./2);
+% % y=deltaLat;
+% clear lat1all lat2all 
+% d2km=radius.*sqrt(x.*x + deltaLat.*deltaLat); %Pythagoran distance
+% clear x deltaLat
 end

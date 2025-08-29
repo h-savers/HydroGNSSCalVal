@@ -1,11 +1,14 @@
 function QC_main(init_SM_Day,final_SM_Day, configurationPath)
 
 close all
+clearvars -except init_SM_Day final_SM_Day configurationPath
 
 f = waitbar(0,'QC-main running. Please wait...');
 
 pixelSMAP=964 ;
 lineSMAP=406 ; 
+pixelSMOS=1388 ;
+lineSMOS=584 ; 
 % tic
 % 
 % global L2OPdatacQ
@@ -17,13 +20,19 @@ end
 %%%%%%%  Read configuration file
 %
             lines = string(splitlines(fileread(configurationPath)));
-%         
+%             
+%%         
+            ConfigRightLine= contains(lines,'RefSatellite')  ;  
+            ConfigRightLine= find(ConfigRightLine==1)  ;   
+            startIndex= regexp(lines(ConfigRightLine),'=') ; 
+            RefSatellite= extractAfter(lines(ConfigRightLine),startIndex) ;
+
+%%         
             ConfigRightLine= contains(lines,'ProductLevel')  ;  
             ConfigRightLine= find(ConfigRightLine==1)  ;   
             startIndex= regexp(lines(ConfigRightLine),'=') ; 
             ProductLevel= extractAfter(lines(ConfigRightLine),startIndex) ;
-%
-%         
+%%         
             ConfigRightLine= contains(lines,'ProcessingSatellite')  ;  
             ConfigRightLine= find(ConfigRightLine==1)  ;   
             startIndex= regexp(lines(ConfigRightLine),'=') ; 
@@ -38,6 +47,11 @@ end
             ConfigRightLine= find(ConfigRightLine==1)  ;   
             startIndex= regexp(lines(ConfigRightLine),'=') ; 
             DataOutputRootPath= extractAfter(lines(ConfigRightLine),startIndex) ;
+%%         
+            ConfigRightLine= contains(lines,'DynamicAuxiliarySMOSRootPath')  ;  
+            ConfigRightLine= find(ConfigRightLine==1)  ;   
+            startIndex= regexp(lines(ConfigRightLine),'=') ; 
+            DynamicAuxiliarySMOSRootPath= extractAfter(lines(ConfigRightLine),startIndex) ;
 %%         
             ConfigRightLine= contains(lines,'DynamicAuxiliarySMAPRootPath')  ;  
             ConfigRightLine= find(ConfigRightLine==1)  ;   
@@ -170,7 +184,8 @@ L2OPfilename='L2OP-SSM.nc' ;
 count_sixhour=0 ; 
 count_day=0 ; 
 vv=figure('Units', 'centimeters', 'Position', [0 0 21 29.7]) ;
-tiledlayout('flow') ; 
+t=tiledlayout('flow') ; 
+title(t,'HydroGNSS L2G SSM maps')
 for ii=1:numdays
     mm=0 ; 
     for kk=1:4
@@ -204,167 +219,42 @@ for ii=1:numdays
 
     end
 end
-%%%%%
-%%%%%%% Identify SMAP product folders in the PDGS for day OK
+%%%%% identify and read Reference Satellite data 
+ if RefSatellite=="SMAP"      
+%% Identify SMAP product folders in the PDGS for day OK
+ [dayOK, dayOKwithSMAP, SMAPfolderOK, SMAPfileOK] = IdentifySMAPfolder(L2OPdataOK, timeproduct_sixtotOK, DynamicAuxiliarySMAPRootPath);
+%% read SMAP data
+ SMAP = ReadSMAP(dayOKwithSMAP, SMAPfileOK, SMAPfolderOK, pixelSMAP, lineSMAP);
 
-[dayOK, sixhour]= size(L2OPdataOK) ; 
-% SMAPfolderOK=[] ;
-daySMAP=0 ; 
-dayOKwithSMAP=zeros(dayOK,1) ;
+ elseif RefSatellite=="SMOS"
+% Identify SMOS product folders in the PDGS for day OK
+ [dayOKSMOS, dayOKwithSMOS, SMOSfolderOK, SMOSfileOK_SD, SMOSfileOK_SA] = IdentifySMOSfolder(L2OPdataOK, timeproduct_sixtotOK, DynamicAuxiliarySMOSRootPath) ; 
 
-for ii=1:dayOK
-% timeproduct_sixtotOK(ii,3)   
-[tyear1, tmonth1, tday1]=ymd(timeproduct_sixtotOK(ii,:)-day(1)) ; 
-tday1=unique(tday1); tday1=tday1(1) ;
-tmonth1=unique(tmonth1); tmonth1=tmonth1(1) ;
-tyear1=unique(tyear1); tyear1=tyear1(1) ;
-[tyear2, tmonth2, tday2]=ymd(timeproduct_sixtotOK(ii,:)) ; 
-tday2=unique(tday2); tday2=tday2(1) ;
-tmonth2=unique(tmonth2); tmonth2=tmonth2(1) ;
-tyear2=unique(tyear2); tyear2=tyear2(1) ;
+%% read SMOS data
+ SMAP = ReadSMOS(dayOKwithSMOS, SMOSfileOK_SD, SMOSfileOK_SA, SMOSfolderOK, pixelSMOS, lineSMOS); 
+ dayOKwithSMAP=dayOKwithSMOS ; 
+ dayOK=dayOKSMOS ; 
 
-[tyear3, tmonth3, tday3]=ymd(timeproduct_sixtotOK(ii,:)+day(1)) ; 
-tday3=unique(tday3); tday3=tday3(1) ;
-tmonth3=unique(tmonth3); tmonth3=tmonth3(1) ;
-tyear3=unique(tyear3); tyear3=tyear3(1) ;
-
-
-SMAPfolderOK(ii,1)=string([char(DynamicAuxiliarySMAPRootPath) '\' char(string(tyear1)) '\' char(string(tmonth1)) '\' char(string(tday1)) '\']) ; 
-SMAPfolderOK(ii,2)=string([char(DynamicAuxiliarySMAPRootPath) '\' char(string(tyear2)) '\' char(string(tmonth2)) '\' char(string(tday2)) '\']) ;
-
-SMAPfolderOK(ii,3)=string([char(DynamicAuxiliarySMAPRootPath) '\' char(string(tyear3)) '\' char(string(tmonth3)) '\' char(string(tday3)) '\']) ;
-
-    if exist(SMAPfolderOK(ii,1))~=0 % HydroLat0  ;
-    % daySMAP=daySMAP+1 ; 
-    content=dir(SMAPfolderOK(ii,1))  ;
-    SMAPfileOK(ii,1)=string(content(3).name) ; 
-        if contains(SMAPfileOK(ii,1),"SMAP_L3_SM_P_")==1 ;
-        SMAPfileOK(ii,1)=string(content(3).name) ; 
-        dayOKwithSMAP(ii)=ii ; 
-        else, throw(MException('INPUT:ERROR', "SMAP file non available in existing folder. Program exiting.")) ;
-        end
-    else SMAPfolderOK(ii,1)=NaN ; 
-    end
-    if  exist(SMAPfolderOK(ii,2))~=0;
-    content=dir(SMAPfolderOK(ii,2))  ;
-    SMAPfileOK(ii,2)=string(content(3).name) ; 
-
-        if contains(SMAPfileOK(ii,2),"SMAP_L3_SM_P_")==1 ; 
-        SMAPfileOK(ii,2)=content(3).name ; 
-        dayOKwithSMAP(ii)=ii ; 
-        else,  throw(MException('INPUT:ERROR', "SMAP file non available in existing folder. Program exiting.")) ;
-        end
-    else SMAPfolderOK(ii,2)=NaN ;
-    end
-
-    if  exist(SMAPfolderOK(ii,3))~=0;
-    content=dir(SMAPfolderOK(ii,3))  ;
-    SMAPfileOK(ii,3)=string(content(3).name) ; 
-
-        if contains(SMAPfileOK(ii,3),"SMAP_L3_SM_P_")==1 ; 
-        SMAPfileOK(ii,3)=content(3).name ; 
-        dayOKwithSMAP(ii)=ii ; 
-        else,  throw(MException('INPUT:ERROR', "SMAP file non available in existing folder. Program exiting.")) ;
-        end
-    else SMAPfolderOK(ii,3)=NaN ;
-    end
-
-end
-
-dayOKwithSMAP=dayOKwithSMAP(find(dayOKwithSMAP>0)) ; 
-
-for ii=dayOKwithSMAP' 
-
-% timeproduct_sixtot(ii,1)-hours(3) 
-% SMAPfolder=
-% SMAPfilename=
-% SoilMoisture_AM_SMAP=h5read('SMAP_L3_SM_P_20180816_R18290_001.h5', '/Soil_Moisture_Retrieval_Data_AM/soil_moisture_dca')
-% tb_time_AM_SMAP=h5read('SMAP_L3_SM_P_20180816_R18290_001.h5', '/Soil_Moisture_Retrieval_Data_AM/tb_time_utc')
-% SoilMoisture_PM_SMAP=h5read('SMAP_L3_SM_P_20180816_R18290_001.h5', '/Soil_Moisture_Retrieval_Data_PM/soil_moisture_dca_pm')
-% tb_time_PM_SMAP=h5read('SMAP_L3_SM_P_20180816_R18290_001.h5', '/Soil_Moisture_Retrieval_Data_PM/tb_time_utc_pm')
-
-if ismissing(SMAPfileOK(ii,1))==0 
-SMAP(ii,1).SoilMoisture_AM_SMAP=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))] , '/Soil_Moisture_Retrieval_Data_AM/soil_moisture_dca') ;
-SMAP(ii,1).tb_time_AM_SMAP=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_AM/tb_time_utc') ;
-SMAP(ii,1).SoilMoisture_PM_SMAP=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_PM/soil_moisture_dca_pm') ;
-SMAP(ii,1).tb_time_PM_SMAP=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_PM/tb_time_utc_pm') ;
-SMAP(ii,1).latitude_AM=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_AM/latitude') ;
-SMAP(ii,1).longitude_AM=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_AM/longitude') ;
-SMAP(ii,1).latitude_PM=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_PM/latitude_pm') ;
-SMAP(ii,1).longitude_PM=h5read([char(SMAPfolderOK(ii,1)) char(SMAPfileOK(ii,1))], '/Soil_Moisture_Retrieval_Data_PM/longitude_pm') ;
-else 
-SMAP(ii,1).SoilMoisture_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,1).tb_time_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,1).SoilMoisture_PM_SMAP=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,1).tb_time_PM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,1).latitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,1).latitude_PM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,1).longitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,1).longiture_PM=nan(pixelSMAP, lineSMAP) ;
-
-
-end
-
-if ismissing(SMAPfileOK(ii,2)) ==0
-SMAP(ii,2).SoilMoisture_AM_SMAP=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))] , '/Soil_Moisture_Retrieval_Data_AM/soil_moisture_dca') ;
-SMAP(ii,2).tb_time_AM_SMAP=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_AM/tb_time_utc') ;
-SMAP(ii,2).SoilMoisture_PM_SMAP=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_PM/soil_moisture_dca_pm') ;
-SMAP(ii,2).tb_time_PM_SMAP=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_PM/tb_time_utc_pm') ;
-SMAP(ii,2).latitude_AM=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_AM/latitude') ;
-SMAP(ii,2).longitude_AM=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_AM/longitude') ;
-SMAP(ii,2).latitude_PM=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_PM/latitude_pm') ;
-SMAP(ii,2).longitude_PM=h5read([char(SMAPfolderOK(ii,2)) char(SMAPfileOK(ii,2))], '/Soil_Moisture_Retrieval_Data_PM/longitude_pm') ;
-else
-SMAP(ii,2).SoilMoisture_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,2).tb_time_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,2).SoilMoisture_PM_SMAP=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,2).tb_time_PM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,2).latitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,2).latitude_PM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,2).longitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,2).longiture_PM=nan(pixelSMAP, lineSMAP) ;
-end 
-
-if ismissing(SMAPfileOK(ii,3)) ==0
-SMAP(ii,3).SoilMoisture_AM_SMAP=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))] , '/Soil_Moisture_Retrieval_Data_AM/soil_moisture_dca') ;
-SMAP(ii,3).tb_time_AM_SMAP=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_AM/tb_time_utc') ;
-SMAP(ii,3).SoilMoisture_PM_SMAP=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_PM/soil_moisture_dca_pm') ;
-SMAP(ii,3).tb_time_PM_SMAP=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_PM/tb_time_utc_pm') ;
-SMAP(ii,3).latitude_AM=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_AM/latitude') ;
-SMAP(ii,3).longitude_AM=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_AM/longitude') ;
-SMAP(ii,3).latitude_PM=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_PM/latitude_pm') ;
-SMAP(ii,3).longitude_PM=h5read([char(SMAPfolderOK(ii,3)) char(SMAPfileOK(ii,3))], '/Soil_Moisture_Retrieval_Data_PM/longitude_pm') ;
-else
-SMAP(ii,3).SoilMoisture_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,3).tb_time_AM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,3).SoilMoisture_PM_SMAP=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,3).tb_time_PM_SMAP=nan(pixelSMAP, lineSMAP) ; 
-SMAP(ii,3).latitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,3).latitude_PM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,3).longitude_AM=nan(pixelSMAP, lineSMAP) ;
-SMAP(ii,3).longitude_PM=nan(pixelSMAP, lineSMAP) ;
-end 
-
-
-end
-
-%%%
+%%
+ end
 
 % SMAPSoilMoisture=[] ; SMAPTime=[]; SMAPLatitude=[] ; SMAPLongitude=[] ;
 % [C, ia, ic]=unique(SMAPfileOK) ; 
-% for ll=ia' , SMAPSoilMoisture=[SMAPSoilMoisture; SMAP(ll).SoilMoisture_AM_SMAP(:); SMAP(ll).SoilMoisture_PM_SMAP(:)];  end
-% for ll=ia' , SMAPTime=[SMAPTime; SMAP(ll).tb_time_AM_SMAP(:)];  end
+% for ll=ia' , SMAPSoilMoisture=[SMAPSoilMoisture; SMAP(ll).SoilMoisture_AM_REF(:); SMAP(ll).SoilMoisture_PM_REF(:)];  end
+% for ll=ia' , SMAPTime=[SMAPTime; SMAP(ll).tb_time_AM_REF(:)];  end
 % for ll=ia' , SMAPLatitude=[SMAPLatitude; SMAP(ll).latitude_AM(:); SMAP(ll).latitude_PM(:)];  end
 % for ll=ia' , SMAPLongitude=[SMAPLongitude; SMAP(ll).longitude_AM(:); SMAP(ll).longitude_PM(:)];  end
 SMAPSMtoplot=[] ;  
 HydroSMtoplot=[] ; 
+HydroSMtoplotLat=[] ; 
+HydroSMtoplotLon=[] ; 
 
 for ii=dayOKwithSMAP' 
 
-SMAPSoilMoisture=[SMAP(ii,1).SoilMoisture_AM_SMAP(:); SMAP(ii,2).SoilMoisture_AM_SMAP(:); SMAP(ii,3).SoilMoisture_AM_SMAP(:) ;...
-    SMAP(ii,1).SoilMoisture_PM_SMAP(:); SMAP(ii,2).SoilMoisture_PM_SMAP(:); SMAP(ii,3).SoilMoisture_PM_SMAP(:) ] ;
-SMAPTime=[SMAP(ii,1).tb_time_AM_SMAP(:); SMAP(ii,2).tb_time_AM_SMAP(:) ; SMAP(ii,3).tb_time_AM_SMAP(:);...
-    SMAP(ii,1).tb_time_PM_SMAP(:); SMAP(ii,2).tb_time_PM_SMAP(:); SMAP(ii,3).tb_time_PM_SMAP(:)] ;
+SMAPSoilMoisture=[SMAP(ii,1).SoilMoisture_AM_REF(:); SMAP(ii,2).SoilMoisture_AM_REF(:); SMAP(ii,3).SoilMoisture_AM_REF(:) ;...
+    SMAP(ii,1).SoilMoisture_PM_REF(:); SMAP(ii,2).SoilMoisture_PM_REF(:); SMAP(ii,3).SoilMoisture_PM_REF(:) ] ;
+SMAPTime=[SMAP(ii,1).tb_time_AM_REF(:); SMAP(ii,2).tb_time_AM_REF(:) ; SMAP(ii,3).tb_time_AM_REF(:);...
+    SMAP(ii,1).tb_time_PM_REF(:); SMAP(ii,2).tb_time_PM_REF(:); SMAP(ii,3).tb_time_PM_REF(:)] ;
 SMAPLatitude=[SMAP(ii,1).latitude_AM(:); SMAP(ii,2).latitude_AM(:); SMAP(ii,3).latitude_AM(:);...
     SMAP(ii,1).latitude_PM(:); SMAP(ii,2).latitude_PM(:); SMAP(ii,3).latitude_PM(:)] ;
 SMAPLongitude=[SMAP(ii,1).longitude_AM(:); SMAP(ii,2).longitude_AM(:); SMAP(ii,3).longitude_AM(:);...
@@ -384,7 +274,7 @@ HydroTime=HydroTime(Nomissed) ;
 HydroLat=HydroLat(Nomissed) ;
 HydroLon=HydroLon(Nomissed)  ; 
 HydroSSMQuality=HydroSSMQuality(Nomissed) ; 
-
+clear Nomissed
 PercSMnan(ii)=100*size(find(isnan(HydroSoilMoisture)>0))/size(HydroSoilMoisture) ; % Percentage of NaN in output HydroGNNS L2 product
 IndexRetrieved=find(isnan(HydroSoilMoisture)==0) ; 
 PercSMretrieve(ii)=100*length(IndexRetrieved)/length(HydroSoilMoisture) ; % Percentage of retrievals in output HydroGNNS L2 product 
@@ -397,12 +287,15 @@ HydroTime=HydroTime(Hydrononan) ;
 HydroLat=HydroLat(Hydrononan) ;
 HydroLon=HydroLon(Hydrononan)  ; 
 
-SMAPnonan=find(SMAPSoilMoisture ~= -9999 & isnan(SMAPSoilMoisture)==0) ;
+% SMAPnonan=find(SMAPSoilMoisture ~= -9999 & isnan(SMAPSoilMoisture)==0) ;
+SMAPnonan=find(SMAPSoilMoisture ~= -9999 & isnan(SMAPSoilMoisture)==0 & datetime(SMAPTime) > min(datetime(HydroTime))- ThresholdTimeDelay/24 ...
+    & datetime(SMAPTime) < max(datetime(HydroTime))+ ThresholdTimeDelay/24) ;
+
 SMAPSoilMoisture=SMAPSoilMoisture(SMAPnonan) ; 
 SMAPTime=SMAPTime(SMAPnonan) ; 
 SMAPLatitude=SMAPLatitude(SMAPnonan) ;
 SMAPLongitude=SMAPLongitude(SMAPnonan) ;
-
+clear SMAPnonan HydroSSMQuality Hydrononan DelayPoints SMAPtimeAll arclen pippo
 [HydroPoints b]=size(HydroSoilMoisture)  ;
 [SMAPPoints b]=size(SMAPSoilMoisture)  ;
 HydroGNSSnumber(ii)=HydroPoints ; 
@@ -422,8 +315,12 @@ pippo=isnan(arclen);
 maxpippo=max(pippo(:)) ; 
 if max(pippo)==1,  pause(60), end 
 % mindist(ipoint)=min(arclen) ;
+clear pippo
 HydrotimeAll=repmat(datetime(HydroTime), 1,SMAPPoints) ;
-SMAPtimeAll=repmat(datetime(extractBefore(SMAPTime, 'Z'))', HydroPoints,1 ) ;
+% % if RefSatellite=="SMAP", SMAPtimeAll=repmat(datetime(extractBefore(SMAPTime, 'Z'))', HydroPoints,1 ) ;
+% % else SMAPtimeAll=repmat(datetime(SMAPTime)', HydroPoints,1 ) ;
+% % end
+SMAPtimeAll=repmat(datetime(SMAPTime)', HydroPoints,1 ) ;
 DelayPoints=HydrotimeAll-SMAPtimeAll ; 
 clear HydrotimeAll HydrotimeAll ; 
 % datetime(repmat(HydroTime, 1,SMAPPoints))- repmat(datetime(extractBefore(SMAPTime, 'Z'))', HydroPoints,1 ) ;
@@ -434,13 +331,16 @@ NearPoints=find(arclen(ipoint,:) < ThresholDist & abs(hours(DelayPoints(ipoint,:
     if isempty(NearPoints)==1 ;
     SMAPSMtoplot(ii,ipoint)=NaN ; 
     HydroSMtoplot(ii,ipoint)=NaN ;
+    HydroSMtoplotLat(ii,ipoint)=NaN ; 
+    HydroSMtoplotLon(ii,ipoint)=NaN ; 
         % empty=empty+1 
 % DelayPoints=datetime(HydroTime(ipoint))- datetime(extractBefore(SMAPTime(NearPoints), 'Z')) ;
 % if  size(NearPoints) == 1 & abs(hours(DelayPoints)) <= ThresholdTimeDelay ;
     elseif  size(NearPoints) == 1  ;
     SMAPSMtoplot(ii,ipoint)=SMAPSoilMoisture(NearPoints) ; 
     HydroSMtoplot(ii,ipoint)=HydroSoilMoisture(ipoint) ;
-  
+    HydroSMtoplotLat(ii,ipoint)=HydroLat(ipoint) ; 
+    HydroSMtoplotLon(ii,ipoint)=HydroLon(ipoint); 
     else
     % ClosestTimeIndex=find(abs(DelayPoints)==min(abs(DelayPoints))) 
     [a b]=size(NearPoints) ;
@@ -450,13 +350,19 @@ NearPoints=find(arclen(ipoint,:) < ThresholDist & abs(hours(DelayPoints(ipoint,:
         if b ==1 ;
         SMAPSMtoplot(ii,ipoint)=SMAPSoilMoisture(NearPoints(bestpoint)) ; 
         HydroSMtoplot(ii,ipoint)=HydroSoilMoisture(ipoint) ;
+        HydroSMtoplotLat(ii,ipoint)=HydroLat(ipoint) ; 
+        HydroSMtoplotLon(ii,ipoint)=HydroLon(ipoint); 
         elseif b > 1 ; 
         SMAPSMtoplot(ii,ipoint)=mean(SMAPSoilMoisture(NearPoints(bestpoint))) ; 
         HydroSMtoplot(ii,ipoint)=HydroSoilMoisture(ipoint) ;
+        HydroSMtoplotLat(ii,ipoint)=HydroLat(ipoint) ; 
+        HydroSMtoplotLon(ii,ipoint)=HydroLon(ipoint); 
         else
         % empty=empty+1 
         SMAPSMtoplot(ii,ipoint)=NaN ; 
         HydroSMtoplot(ii,ipoint)=NaN ;
+        HydroSMtoplotLat(ii,ipoint)=NaN ; 
+        HydroSMtoplotLon(ii,ipoint)=NaN; 
         disp([char(datetime('now','Format','yyyy-MM-dd HH:mm:ss')) ' WARNING: no selection of multiple nearest points. Program continuing']) ; 
         
 
@@ -472,10 +378,15 @@ PercNoSaturations(ii)=100*size(find(HydroSMtoplot(ii,1:HydroPoints)==0 | HydroSM
 
 end
 
+vvvv=figure('Units', 'centimeters', 'Position', [0 0 21 29.7]) ;
+hold on
+ax1 = axes('Position',[0 0 1 1]); ax1.TickDir='out' ; 
+ax2 = axes('Position',[0.1 0.25 0.8 0.5]); 
 
 for ii=dayOKwithSMAP'
 error= SMAPSMtoplot(ii,1:HydroGNSSnumber(ii))- HydroSMtoplot(ii,1:HydroGNSSnumber(ii)) ; 
 noerrornan=find(isnan(error)==0) ; 
+
 error=error(noerrornan) ; 
 BIAS(ii)=mean(error) ; 
 UbRMSE(ii)=std(error) ;
@@ -487,13 +398,18 @@ pluto=SMAPSMtoplot(ii,1:HydroGNSSnumber(ii)) ;
 R=corrcoef(pippo(noerrornan), pluto(noerrornan)) ; 
 corrcoe(ii)=R(1,2) ; 
 corrcoe2(ii)=mean((pippo(noerrornan)-mean(pippo(noerrornan))).*(pluto(noerrornan)-mean(pluto(noerrornan))))./std(pluto(noerrornan))/std(pippo(noerrornan)) ;
+
+geoscatter(HydroSMtoplotLat(ii,noerrornan),HydroSMtoplotLon(ii,noerrornan), [], error)
+ax2=gca ; 
 end
+colorbar('southoutside')
+title('Map of SSM errors (Reference minus HydroGNSS) [%]')
 
 for ii=dayOKwithSMAP'
  
 report1(ii)=string(['Percentage of retrievals in  HydroGNNS L2 product = ' char(string(round(PercSMretrieve(ii),2))) ' %']) ; 
 report2(ii)=string(['Percentage of NaN in  HydroGNNS L2 product  = '       char(string(round(PercSMnan(ii),2))) ' %']) ;
-report3(ii)=string(['Percentage of HydroGNNS L2 product without SMAP colocation  = ' char(string(round(PercNoColocation(ii),2))) ' %']) ;
+report3(ii)=string(['Percentage of HydroGNNS L2 product without reference colocation  = ' char(string(round(PercNoColocation(ii),2))) ' %']) ;
 report4(ii)=string(['Percentage of saturated (i.e., 0 or 50%) HydroGNNS L2 Soil Moisture  = ' char(string(round(PercNoSaturations(ii),2))) ' %']) ;
 report9(ii)=string(['Percentage of retrievals with optimal quality = '           char(string(round(PercSM_Flag1_good(ii),2))) ' %']) ;
 
@@ -516,7 +432,7 @@ for ii=dayOKwithSMAP'
 figure(vv) ; nexttile ;
 bar(Flag(ii,:)) ; 
 xticks([1:2:32]); 
-title(['Flags on ' char(DateOK(ii))])
+title(['L2 Flags on ' char(DateOK(ii))])
 xlabel('Flag 32 bits')
 end
 
@@ -545,12 +461,27 @@ hold on
 % legend([legendtxt(1) legendtxt(2) legendtxt(3)],"AutoUpdate","on")
 
 end
+% end plot scatter of retrievals
+%
+% % init plot of map of errors
+% vvvv=figure('Units', 'centimeters', 'Position', [0 0 21 29.7]) ;
+% ax1 = axes('Position',[0 0 1 1]); ax1.TickDir='out' ; 
+% ax2 = axes('Position',[0.2 0.15 0.7 0.6]); 
+% for ii=dayOKwithSMAP'
+% plot(100.*SMAPSMtoplot(ii,1:HydroGNSSnumber(ii)), HydroSMtoplot(ii,1:HydroGNSSnumber(ii)), '.') ; 
+% hold on 
+% % legend([legendtxt(1) legendtxt(2) legendtxt(3)],"AutoUpdate","on")
+% 
+% end
+% % end plot map of errore
+
+
 
 xlim([-5 55]) ;
 ylim([-5 55]) ;
-title('HydrGNSS vs SMAP L3 comparison')
+title(['HydrGNSS vs ' char(RefSatellite) ' reference SSM'])
 ylabel(['HydroGNSS ' char(ProductLevel) ' Soil Moisture [%]'])
-xlabel('SMAP L3 Soil Moisture [%]')
+xlabel([char(RefSatellite) ' L3 Soil Moisture [%]'])
 legend(legendtxt',"AutoUpdate","on", 'Location', 'southoutside', 'FontSize', 12)
 
 
@@ -566,9 +497,9 @@ vert=98 ;
 indent=-100 ;
 sizefontLarge=15 ;
 sizefontSmall=12 ;
-text(indent,vert, ['\fontsize{12} HydroGNSS QC report on ' char(datetime)] ) ; 
+text(indent,vert, ['\fontsize{12} SSM QC report on ' char(datetime)] ) ; 
 vert=vert-3 ; 
-text(indent,vert, ['\fontsize{10} Time period: ' init_SM_Day ' to ' final_SM_Day] )
+text(indent,vert, ['\fontsize{10} Reference:' char(RefSatellite) '. Time period: ' init_SM_Day ' to ' final_SM_Day] )
 
 for ii=dayOKwithSMAP'
 vert=vert-4 ; 
@@ -594,14 +525,15 @@ end
 
 reportfile=[char(ReportFolder) '\HydroGNSSQCreport_' char(datetime('now','Format','yy-MM-dd_HH-mm')) '.pdf'] ;
 
-Title='SSM QC report: HydroGNSS vs SMAP 36km' ;
-str1=['First day: ' char(init_SM_Day) '. Final day; ' char(final_SM_Day)] ;
+Title=['SSM QC report: HydroGNSS vs ' char(RefSatellite)] ;
+str1=['Time of issue: ' char(datetime) '. Reference: ' char(RefSatellite)] ; 
+str11= ['First day: ' char(init_SM_Day) '. Final day: ' char(final_SM_Day)] ;
 % C = {} ;
-C = {Title, str1} ;
+C = {Title, str1, str11} ;
 for ii=dayOKwithSMAP'
 str0=['Day ' char(string(ii)) ': '   char(DateOK(ii))] ; 
 str2 = ['        Percentage of SP with retrievals: ', char(string(round(PercSMretrieve(ii),2))) ' %'] ;
-str3 = ['        Percentage of HydroGNNS product without SMAP colocation: ',  char(string(round(PercNoColocation(ii),2))) ' %'] ;
+str3 = ['        Percentage of HydroGNNS product without reference colocation: ',  char(string(round(PercNoColocation(ii),2))) ' %'] ;
 str4 = ['        Percentage of saturated (i.e., 0/50%) HydroGNNS L2 Soil Moisture: ',  char(string(round(PercNoSaturations(ii),2))) ' %'] ;
 str9 = ['        Percentage of retrievals with optimal quality: ',  char(string(round(PercSM_Flag1_good(ii),2))) ' %'] ;
 str5=['        Root mean square error:                  RMSE=' char(string(round(RMSE(ii),2))), ' m^3/m^3' ] ; 
@@ -617,7 +549,7 @@ ok = text2pdf(reportfile,C,0) ;
 % exportgraphics(vv,reportfile, 'Append', true, 'Padding', figure) ;
 exportgraphics(vv,reportfile, 'Append', true) ;
 exportgraphics(vvv,reportfile, 'Append', true) ;
-
+exportgraphics(vvvv,reportfile, 'Append', true) ;
 
  disp([char(datetime('now','Format','yyyy-MM-dd HH:mm:ss')) ' INFO: End of program']) ; 
  fprintf(logfileID,[char(datetime('now','Format','yyyy-MM-dd HH:mm:ss')) ' INFO: End of program']) ; 
